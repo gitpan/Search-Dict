@@ -32,10 +32,12 @@
       },
       "runtime" : {
          "requires" : {
-            "Exporter" : "0"
+            "Exporter" : "0",
+            "Test::More" : "0.47",
+            "Tie::StdHandle" : "0"
          }
       }
    },
    "release_status" : "stable",
-   "version" : "1.05"
+   "version" : "1.06"
 }

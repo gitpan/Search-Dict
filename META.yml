@@ -19,4 +19,6 @@ no_index:
     - inc
 requires:
   Exporter: 0
-version: 1.05
+  Test::More: 0.47
+  Tie::StdHandle: 0
+version: 1.06
