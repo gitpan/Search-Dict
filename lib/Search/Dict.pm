@@ -2,15 +2,22 @@ package Search::Dict;
 require 5.000;
 require Exporter;
 
+BEGIN {
+  if ( $] ge '5.015' ) {
+    require feature;
+    feature->import('fc');
+  }
+}
+
 use strict;
 
-our $VERSION = '1.03';
+our $VERSION = '1.05';
 our @ISA = qw(Exporter);
 our @EXPORT = qw(look);
 
 =head1 NAME
 
-Search::Dict, look - search for key in dictionary file
+Search::Dict - look - search for key in dictionary file
 
 =head1 SYNOPSIS
 
@@ -60,12 +67,19 @@ sub look {
     }
     $comp = sub { $_[0] cmp $_[1] } unless defined $comp;
     local($_);
-    my(@stat) = stat($fh)
-	or return -1;
+    my $fno = fileno $fh;
+    my @stat;
+    if ( defined $fno && $fno >= 0 ) { # real, open file
+      @stat = eval { stat($fh) }; # in case fileno lies
+    }
     my($size, $blksize) = @stat[7,11];
+    $size = do { seek($fh,0,2); my $s = tell($fh); seek($fh,0,0); $s }
+        unless defined $size;
     $blksize ||= 8192;
     $key =~ s/[^\w\s]//g if $dict;
-    $key = lc $key       if $fold;
+    if ( $fold ) {
+      $key = $] ge '5.015' ? fc($key) : lc($key);
+    }
     # find the right block
     my($min, $max) = (0, int($size / $blksize));
     my $mid;
@@ -78,7 +92,9 @@ sub look {
 	$_ = $xfrm->($_) if defined $xfrm;
 	chomp;
 	s/[^\w\s]//g if $dict;
-	$_ = lc $_   if $fold;
+        if ( $fold ) {
+          $_ = $] ge '5.015' ? fc($_) : lc($_);
+        }
 	if (defined($_) && $comp->($_, $key) < 0) {
 	    $min = $mid;
 	}
@@ -98,7 +114,9 @@ sub look {
 	$_ = $xfrm->($_) if defined $xfrm;
 	chomp;
 	s/[^\w\s]//g if $dict;
-	$_ = lc $_   if $fold;
+        if ( $fold ) {
+          $_ = $] ge '5.015' ? fc($_) : lc($_);
+        }
 	last if $comp->($_, $key) >= 0;
     }
     seek($fh,$min,0);
