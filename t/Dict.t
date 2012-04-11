@@ -2,7 +2,7 @@
 
 use strict;
 use Test::More;
-plan tests => 14;
+plan tests => ( $] ge '5.008' ? 14 : 10 );
 
 my $DICT = <<EOT;
 Aarhus
@@ -35,7 +35,7 @@ abating
 Abba
 EOT
 
-use Tie::StdHandle;
+use Tie::Handle; # loads Tie::StdHandle
 use Search::Dict;
 
 open(DICT, "+>dict-$$") or die "Can't create dict-$$: $!";
@@ -47,14 +47,14 @@ my $word;
 my $pos = look *DICT, "Ababa";
 chomp($word = <DICT>);
 cmp_ok $pos, ">=", 0;
-is $word, "Ababa";
+is $word, "Ababa", "found 'Ababa' from file";
 
 if (ord('a') > ord('A') ) {  # ASCII
 
     $pos = look *DICT, "foo";
     $word = <DICT>;
 
-    is $pos, length($DICT);  # will search to end of file
+    is $pos, length($DICT), "word not found will search to end of file";
 
     my $pos = look *DICT, "abash";
     chomp($word = <DICT>);
@@ -90,33 +90,34 @@ close DICT or die "cannot close";
 
   tie *DICT, 'Tie::StdHandle', "<", "dict-$$";
 
-  $pos = look *DICT, "aarhus", 1, 1;
+  $pos = look \*DICT, "aarhus", 1, 1;
   is( $warn, '', "no warning seen" );
 
-  chomp($word = <DICT>);
+  $word = <DICT>;
+  chomp $word;
 
-  cmp_ok $pos, ">=", 0;
-  is $word, "Aarhus";
+  cmp_ok $pos, ">=", 0, "case-insensitive search for 'aarhus' returned > 0";
+  is $word, "Aarhus", "case-insensitive search found 'Aarhus'";
 
 }
 unlink "dict-$$";
 
-{
-    open my $strfh, "<", \$DICT or die $!;
+if ( $] ge '5.008' ) {
+      open my $strfh, "<", \$DICT or die $!;
 
-    {
-	my $pos = look $strfh, 'Ababa';
-	chomp($word = <$strfh>);
-	cmp_ok $pos, ">=", 0;
-	is $word, "Ababa";
-    }
+      {
+          my $pos = look $strfh, 'Ababa';
+          chomp($word = <$strfh>);
+          cmp_ok $pos, ">=", 0;
+          is $word, "Ababa";
+      }
 
-    {
-	my $pos = look $strfh, "aarhus", 1, 1;
-	chomp($word = <$strfh>);
-	cmp_ok $pos, ">=", 0;
-	is $word, "Aarhus";
-    }
+      {
+          my $pos = look $strfh, "aarhus", 1, 1;
+          chomp($word = <$strfh>);
+          cmp_ok $pos, ">=", 0;
+          is $word, "Aarhus";
+      }
 
-    close $strfh;
+      close $strfh;
 }
